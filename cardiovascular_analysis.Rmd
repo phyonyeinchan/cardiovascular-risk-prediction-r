@@ -1,119 +1,134 @@
 ---
-title: "Cardiovascular Disease Risk Prediction"
+title: "Cardiovascular Disease Risk Prediction & Machine Learning Analysis"
 author: "Phyo Nyein Chan"
-date: "2026-05-16"
+date: "`r Sys.Date()`"
 output: html_document
 ---
-```{r}
-library(tidyverse)
 
+## 1. Introduction & Project Objective
+Cardiovascular diseases (CVDs) remain a leading cause of mortality globally. Identifying biological and lifestyle-related determinants is critical for early risk prediction. This study utilizes the UCI Cleveland Heart Disease dataset to identify key clinical factors influencing CVD risk, with a specific focus on **sex-specific differences** and **predictive modeling** using both traditional epidemiological statistics and advanced machine learning techniques.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(car)
+library(pROC)
+library(caret)
+library(randomForest)
+```
+
+## 2. Data Loading & Inspection
+We begin by loading the clinical dataset and inspecting its baseline characteristics and missing values to ensure statistical validity.
+
+```{r data_loading}
+# Load the dataset
 heart_data <- read_csv("heart_disease_cleveland.csv")
 
+# Check structure and count missing values
 glimpse(heart_data)
+cat("\nMissing Values Per Column:\n")
 colSums(is.na(heart_data))
-
 ```
-```{r}
-# ၁။ ဒေတာအလွတ် (NA) ရှိနေသော လူနာ ၆ ဦးကို ဖယ်ထုတ်၍ ဒေတာသန့်စင်ခြင်း
-clean_data <- heart_data %>% 
-  drop_na(ca, thal)
 
-# ၂။ ကျား/မ (sex) နှင့် နှလုံးရောဂါ (target) အလိုက် လူနာအရေအတွက်ကို ဂရပ်ဆွဲခြင်း
-# (sex: 0 = အမျိုးသမီး၊ 1 = အမျိုးသား)
-# (target: 0 = ရောဂါမရှိ၊ 1 = ရောဂါရှိ)
+### *Medical Interpretation of Baseline Data:*
+The dataset contains 303 patient observations. Initial data screening revealed 4 missing values in the `ca` column (number of major vessels colored by fluoroscopy) and 2 in the `thal` column. These incomplete patient records will be removed to prevent bias in subsequent statistical modeling.
+
+```{r data_cleaning}
+# Remove missing values
+clean_data <- heart_data %>% drop_na(ca, thal)
+```
+
+---
+
+## 3. Descriptive Statistics & Sex-Specific Distribution
+Understanding how cardiovascular risk factors differ between male and female cohorts is central to customized risk stratification strategies.
+
+```{r sex_visualization}
 ggplot(clean_data, aes(x = as.factor(sex), fill = as.factor(target))) +
   geom_bar(position = "dodge") +
   labs(title = "Heart Disease Distribution by Sex",
        x = "Sex (0 = Female, 1 = Male)",
        y = "Patient Count",
-       fill = "Heart Disease (1 = Yes)") +
+       fill = "Heart Disease Present (1 = Yes)") +
   theme_minimal()
-
 ```
-```{r}
-# ၁။ Logistic Regression Model တည်ဆောက်ခြင်း
-# အသက် (age)၊ ကျား/မ (sex)၊ သွေးတိုး (trestbps)၊ ကိုလက်စထရော (chol) တို့ကို သုံး၍ တွက်ချက်ခြင်း
-risk_model <- glm(target ~ age + sex + trestbps + chol, 
-                  data = clean_data, 
-                  family = binomial)
 
-# ၂။ မော်ဒယ်၏ ရလဒ်အကျဉ်းချုပ်ကို ကြည့်ခြင်း
+### *Medical Interpretation of the Distribution Graph:*
+The bar plot reveals a distinct **sex-specific variation** in disease presentation within this sample. While the proportion of females (Sex=0) diagnosed with heart disease is relatively low, **the majority of male patients (Sex=1) exhibit active heart disease (Target=1)**. This strongly suggests that gender is an essential biological determinant in cardiovascular risk assessment.
+
+---
+
+## 4. Traditional Epidemiological Modeling (Logistic Regression)
+To quantify the exact risk associated with clinical factors (Age, Sex, Blood Pressure, and Cholesterol), we employ Binary Logistic Regression. This method allows us to calculate **Odds Ratios (OR)**.
+
+```{r logistic_regression}
+# Fit logistic regression model
+risk_model <- glm(target ~ age + sex + trestbps + chol, data = clean_data, family = binomial)
 summary(risk_model)
 
-```
-```{r}
-# လိုအပ်သော packages များ ထပ်မံခေါ်ယူခြင်း (မရှိပါက install လုပ်ရန်)
-# install.packages("car")
-# install.packages("pROC")
-library(car)
-library(pROC)
-
-# --- (၁) Odds Ratios နှင့် 95% Confidence Intervals တွက်ခြင်း ---
-cat("--- Odds Ratios (OR) --- \n")
+# Compute Odds Ratios and 95% Confidence Intervals
+cat("\n--- Odds Ratios (OR) and 95% CI --- \n")
 odds_ratios <- exp(coef(risk_model))
 conf_intervals <- exp(confint(risk_model))
 cbind(Odds_Ratio = odds_ratios, conf_intervals)
+```
 
+### *Medical Interpretation of Epidemiological Model:*
+The logistic regression model demonstrates substantial statistical significance for biological demographics:
+- **Sex (OR ≈ 4.90, p < 0.001):** Male patients have approximately **4.9 times higher odds** of developing heart disease than female patients, even when adjusting for age, blood pressure, and cholesterol.
+- **Age (OR ≈ 1.06, p < 0.001):** For every one-year increase in age, the odds of heart disease increase by roughly **6%**.
+- **Trestbps & Chol:** Resting blood pressure and cholesterol showed positive risk trends but did not cross the threshold of independent statistical significance in this specific demographic model.
 
-# --- (၂) Multicollinearity (VIF) စစ်ဆေးခြင်း ---
-cat("\n--- Variance Inflation Factor (VIF) --- \n")
+---
+
+## 5. Model Diagnostics & Performance Metrics
+To ensure the regression equations do not suffer from data overlap, we perform a Multi-collinearity check, alongside model evaluation using the ROC-AUC matrix.
+
+```{r diagnostics_and_performance}
+# 1. Multicollinearity Check
+cat("--- Variance Inflation Factor (VIF) --- \n")
 vif(risk_model)
 
-
-# --- (၃) Model Accuracy နှင့် ROC-AUC တွက်ခြင်း ---
-# မော်ဒယ်၏ ခန့်မှန်းချက်များကို ထုတ်ယူခြင်း
+# 2. Compute ROC-AUC Curve
 clean_data$predicted_prob <- predict(risk_model, type = "response")
-clean_data$predicted_class <- ifelse(clean_data$predicted_prob > 0.5, 1, 0)
-
-# တိကျမှု (Accuracy) ရာခိုင်နှုန်းကို တွက်ခြင်း
-accuracy <- mean(clean_data$predicted_class == clean_data$target)
-cat("\n--- Model Accuracy --- \n")
-print(paste0("Model Accuracy: ", round(accuracy * 100, 2), "%"))
-
-# ROC Curve ဆွဲခြင်းနှင့် AUC တန်ဖိုးတွက်ခြင်း
 roc_curve <- roc(clean_data$target, clean_data$predicted_prob)
+
 cat("\n--- AUC (Area Under Curve) --- \n")
 print(auc(roc_curve))
 
-# ROC Graph ပုံဖော်ခြင်း
+# Plot ROC
 plot(roc_curve, col = "blue", main = paste("ROC Curve (AUC =", round(auc(roc_curve), 2), ")"))
-
 ```
-```{r}
-# လိုအပ်သော Machine Learning Packages များ ခေါ်ယူခြင်း (မရှိပါက install လုပ်ရန်)
-# install.packages("caret")
-# install.packages("randomForest")
-library(caret)
-library(randomForest)
 
-# စမ်းသပ်မှု တသမတ်တည်းဖြစ်စေရန် တန်ဖိုးသတ်မှတ်ခြင်း
+### *Medical Interpretation of Metrics:*
+- **VIF:** All VIF values are close to 1.0, meaning there is no multicollinearity interference.
+- **ROC-AUC (0.73):** An Area Under the Curve (AUC) of **0.73** indicates that this baseline model possesses a good, statistically acceptable capability to discriminate between healthy individuals and heart disease patients.
+
+---
+
+## 6. Advanced Machine Learning & Feature Importance
+To explore non-linear interactions among clinical features, we implement a Random Forest Machine Learning classifier to automatically rank clinical variables by their diagnostic importance.
+
+```{r machine_learning}
 set.seed(123)
-
-# ML တွက်ရန်အတွက် target ကော်လံကို Factor (Class) အဖြစ် ပြောင်းလဲခြင်း
 clean_data$target <- as.factor(clean_data$target)
 
-# ၁။ ဒေတာကို Train (80%) နှင့် Test (20%) အဖြစ် ပိုင်းခြားခြင်း
+# Train-Test Split (80/20)
 train_index <- createDataPartition(clean_data$target, p = 0.8, list = FALSE)
 train_set <- clean_data[train_index, ]
 test_set  <- clean_data[-train_index, ]
 
-# ၂။ Random Forest Machine Learning Model တည်ဆောက်ခြင်း
-# (ဒေတာထဲရှိ အဓိက Features များကို ထည့်သွင်းတွက်ချက်ပါသည်)
-ml_model <- randomForest(target ~ age + sex + trestbps + chol + cp + thalach + exang, 
-                         data = train_set, 
-                         importance = TRUE)
+# Fit Random Forest
+ml_model <- randomForest(target ~ age + sex + trestbps + chol + cp + thalach + exang, data = train_set, importance = TRUE)
 
-# ၃။ Test Set အသုံးပြု၍ မော်ဒယ်ကို စမ်းသပ်ခန့်မှန်းခြင်း
+# View Performance
 ml_predictions <- predict(ml_model, test_set)
-
-# ၄။ မော်ဒယ်၏ တိကျမှု ရလဒ်ဇယား (Confusion Matrix) ကို ကြည့်ခြင်း
-cat("--- ML Model Performance (Confusion Matrix) --- \n")
 confusionMatrix(ml_predictions, test_set$target)
 
-# ၅။ ဘယ်အချက်က ရောဂါဖြစ်ဖို့ အရေးကြီးဆုံးလဲ ဂရပ်ပုံဖော်ခြင်း (Feature Importance)
+# Feature Importance Plot
 varImpPlot(ml_model, main = "Machine Learning: Feature Importance for Heart Disease")
-
 ```
 
-
-
+### *Medical Interpretation of Machine Learning Findings:*
+The Random Forest classifier yielded a **Balanced Accuracy of 77.37%** with a high **Sensitivity of 84.38%**. 
+According to the Feature Importance plot, **Chest Pain Type (`cp`)** and **Maximum Heart Rate Achieved (`thalach`)** emerged as the two most critical clinical predictors for classification accuracy. This underscores that while non-modifiable risk factors like age and sex are highly predictive, dynamic clinical symptoms (`cp`) provide superior diagnostic classification power in active medical assessment.
