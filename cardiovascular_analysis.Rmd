@@ -1,0 +1,119 @@
+---
+title: "Cardiovascular Disease Risk Prediction"
+author: "Phyo Nyein Chan"
+date: "2026-05-16"
+output: html_document
+---
+```{r}
+library(tidyverse)
+
+heart_data <- read_csv("heart_disease_cleveland.csv")
+
+glimpse(heart_data)
+colSums(is.na(heart_data))
+
+```
+```{r}
+# ၁။ ဒေတာအလွတ် (NA) ရှိနေသော လူနာ ၆ ဦးကို ဖယ်ထုတ်၍ ဒေတာသန့်စင်ခြင်း
+clean_data <- heart_data %>% 
+  drop_na(ca, thal)
+
+# ၂။ ကျား/မ (sex) နှင့် နှလုံးရောဂါ (target) အလိုက် လူနာအရေအတွက်ကို ဂရပ်ဆွဲခြင်း
+# (sex: 0 = အမျိုးသမီး၊ 1 = အမျိုးသား)
+# (target: 0 = ရောဂါမရှိ၊ 1 = ရောဂါရှိ)
+ggplot(clean_data, aes(x = as.factor(sex), fill = as.factor(target))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Heart Disease Distribution by Sex",
+       x = "Sex (0 = Female, 1 = Male)",
+       y = "Patient Count",
+       fill = "Heart Disease (1 = Yes)") +
+  theme_minimal()
+
+```
+```{r}
+# ၁။ Logistic Regression Model တည်ဆောက်ခြင်း
+# အသက် (age)၊ ကျား/မ (sex)၊ သွေးတိုး (trestbps)၊ ကိုလက်စထရော (chol) တို့ကို သုံး၍ တွက်ချက်ခြင်း
+risk_model <- glm(target ~ age + sex + trestbps + chol, 
+                  data = clean_data, 
+                  family = binomial)
+
+# ၂။ မော်ဒယ်၏ ရလဒ်အကျဉ်းချုပ်ကို ကြည့်ခြင်း
+summary(risk_model)
+
+```
+```{r}
+# လိုအပ်သော packages များ ထပ်မံခေါ်ယူခြင်း (မရှိပါက install လုပ်ရန်)
+# install.packages("car")
+# install.packages("pROC")
+library(car)
+library(pROC)
+
+# --- (၁) Odds Ratios နှင့် 95% Confidence Intervals တွက်ခြင်း ---
+cat("--- Odds Ratios (OR) --- \n")
+odds_ratios <- exp(coef(risk_model))
+conf_intervals <- exp(confint(risk_model))
+cbind(Odds_Ratio = odds_ratios, conf_intervals)
+
+
+# --- (၂) Multicollinearity (VIF) စစ်ဆေးခြင်း ---
+cat("\n--- Variance Inflation Factor (VIF) --- \n")
+vif(risk_model)
+
+
+# --- (၃) Model Accuracy နှင့် ROC-AUC တွက်ခြင်း ---
+# မော်ဒယ်၏ ခန့်မှန်းချက်များကို ထုတ်ယူခြင်း
+clean_data$predicted_prob <- predict(risk_model, type = "response")
+clean_data$predicted_class <- ifelse(clean_data$predicted_prob > 0.5, 1, 0)
+
+# တိကျမှု (Accuracy) ရာခိုင်နှုန်းကို တွက်ခြင်း
+accuracy <- mean(clean_data$predicted_class == clean_data$target)
+cat("\n--- Model Accuracy --- \n")
+print(paste0("Model Accuracy: ", round(accuracy * 100, 2), "%"))
+
+# ROC Curve ဆွဲခြင်းနှင့် AUC တန်ဖိုးတွက်ခြင်း
+roc_curve <- roc(clean_data$target, clean_data$predicted_prob)
+cat("\n--- AUC (Area Under Curve) --- \n")
+print(auc(roc_curve))
+
+# ROC Graph ပုံဖော်ခြင်း
+plot(roc_curve, col = "blue", main = paste("ROC Curve (AUC =", round(auc(roc_curve), 2), ")"))
+
+```
+```{r}
+# လိုအပ်သော Machine Learning Packages များ ခေါ်ယူခြင်း (မရှိပါက install လုပ်ရန်)
+# install.packages("caret")
+# install.packages("randomForest")
+library(caret)
+library(randomForest)
+
+# စမ်းသပ်မှု တသမတ်တည်းဖြစ်စေရန် တန်ဖိုးသတ်မှတ်ခြင်း
+set.seed(123)
+
+# ML တွက်ရန်အတွက် target ကော်လံကို Factor (Class) အဖြစ် ပြောင်းလဲခြင်း
+clean_data$target <- as.factor(clean_data$target)
+
+# ၁။ ဒေတာကို Train (80%) နှင့် Test (20%) အဖြစ် ပိုင်းခြားခြင်း
+train_index <- createDataPartition(clean_data$target, p = 0.8, list = FALSE)
+train_set <- clean_data[train_index, ]
+test_set  <- clean_data[-train_index, ]
+
+# ၂။ Random Forest Machine Learning Model တည်ဆောက်ခြင်း
+# (ဒေတာထဲရှိ အဓိက Features များကို ထည့်သွင်းတွက်ချက်ပါသည်)
+ml_model <- randomForest(target ~ age + sex + trestbps + chol + cp + thalach + exang, 
+                         data = train_set, 
+                         importance = TRUE)
+
+# ၃။ Test Set အသုံးပြု၍ မော်ဒယ်ကို စမ်းသပ်ခန့်မှန်းခြင်း
+ml_predictions <- predict(ml_model, test_set)
+
+# ၄။ မော်ဒယ်၏ တိကျမှု ရလဒ်ဇယား (Confusion Matrix) ကို ကြည့်ခြင်း
+cat("--- ML Model Performance (Confusion Matrix) --- \n")
+confusionMatrix(ml_predictions, test_set$target)
+
+# ၅။ ဘယ်အချက်က ရောဂါဖြစ်ဖို့ အရေးကြီးဆုံးလဲ ဂရပ်ပုံဖော်ခြင်း (Feature Importance)
+varImpPlot(ml_model, main = "Machine Learning: Feature Importance for Heart Disease")
+
+```
+
+
+
