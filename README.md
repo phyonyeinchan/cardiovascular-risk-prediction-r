@@ -1,53 +1,45 @@
-# cardiovascular-risk-prediction-r
-# Cardiovascular Disease Risk Prediction & Machine Learning Analysis
+# 🫀 Cardiovascular Disease Risk Prediction & Machine Learning Analysis
 
-## 📌 Project Overview
-This project focuses on identifying key clinical determinants of cardiovascular disease and building a predictive model using both traditional epidemiology statistics and advanced machine learning. The primary goal is aligned with understanding sex-specific differences, risk stratification, and feature importance in cardiometabolic diseases.
+## 📌 1. Project Title
+**Epidemiological Risk Stratification and Machine Learning Classification of Cardiovascular Disease Using Clinical Biomarkers.**
 
-### 🔗 Live Interactive Report
-[👉 CLICK HERE TO VIEW THE INTERACTIVE HTML REPORT](https://phyonyeinchan.github.io/cardiovascular-risk-prediction-r/cardiovascular_analysis.html
+Author - Phyo Nyein Chan
+---
 
-
+## 🔍 2. Background & Objectives
+Cardiovascular diseases (CVDs) are complex and influenced by a combination of demographic, lifestyle, and biological mechanisms. 
+The core objectives of this project are:
+- To analyze **sex-specific differences** in heart disease prevalence and presentation.
+- To quantify the impact of risk factors like age, resting blood pressure, and cholesterol.
+- To evaluate clinical feature importance using artificial intelligence to contribute towards improved risk stratification and prevention strategies.
 
 ---
 
-## 📊 Dataset Specifications
-- **Source:** UCI Machine Learning Repository (Cleveland Clinic Foundation)
-- **Sample Size:** 297 patients (after removing 6 rows with missing data in `ca` and `thal` columns)
-- **Features:** 14 clinical attributes including age, sex, chest pain type (`cp`), resting blood pressure (`trestbps`), cholesterol (`chol`), and maximum heart rate (`thalach`).
-- **Target Variable:** Binary classification (0 = No Disease, 1 = Heart Disease Present)
+## 📂 3. Dataset Specifications & Source
+- **Dataset Name:** UCI Machine Learning Repository — Heart Disease Dataset (Cleveland Cohort)
+- **Original Authors:** Andras Janosi, William Steinbrunn, Matthias Pfisterer, and Robert Detrano (1988).
+- **Direct Dataset Link:** [UCI Heart Disease Dataset via Kaggle](https://kaggle.com)
+- **Data Size:** 297 patient cases analyzed (after filtering out missing diagnostic data from `ca` and `thal` variables).
 
 ---
 
-## 🛠️ Methodology & Statistical Approaches
-This analysis leverages multiple methodologies required in advanced epidemiological research:
-1. **Data Cleaning & Descriptive Statistics:** Handled missing values systematically and analyzed sex-specific distributions.
-2. **Traditional Epidemiology Modeling:** Conducted Binary Logistic Regression to estimate **Odds Ratios (OR)** with 95% Confidence Intervals.
-3. **Model Diagnostics:** Performed Multicollinearity checks using Variance Inflation Factor (VIF).
-4. **Machine Learning & Feature Importance:** Implemented a **Random Forest** algorithm to classify patients and rank clinical feature importance.
-5. **Performance Evaluation:** Evaluated models using Sensitivity, Specificity, Balanced Accuracy, and ROC-AUC curve analysis.
+## 🛠️ 4. Methods & Statistical Approaches Used
+This project utilizes an interdisciplinary workflow combining traditional biostatistics with medical machine learning:
+1. **Data Harmonization:** Handled missing values systematically via the `tidyverse` suite in R.
+2. **Descriptive Analytics:** Visualized demographic groupings utilizing `ggplot2` bar distributions.
+3. **Traditional Epidemiology Statistics:** Executed **Binary Logistic Regression** via `glm()` to calculate adjusted **Odds Ratios (OR)** and 95% Confidence Intervals.
+4. **Model Diagnostics:** Validated assumptions against multicollinearity using the **Variance Inflation Factor (VIF)** via the `car` library.
+5. **Advanced Machine Learning:** Implemented a **Random Forest Classification Algorithm** via `randomForest` with an 80/20 train-test split cross-validation.
+6. **Performance Metrics Evaluation:** Calculated Sensitivity, Specificity, Balanced Accuracy, and plotted **Receiver Operating Characteristic (ROC-AUC)** curves via `pROC` and `caret`.
 
 ---
 
-## 📈 Key Findings
-- **Sex-Specific Differences:** Logistic regression confirmed that male patients have a significantly higher risk of cardiovascular disease compared to females (p < 0.001).
-- **Strongest Predictors:** Both traditional statistics and Machine Learning (Random Forest) identified **chest pain type (`cp`)** and **maximum heart rate achieved (`thalach`)** as the most critical diagnostic markers for predicting heart disease presence.
-- **Model Performance:** The predictive model achieved a **Balanced Accuracy of 77.37%** and a **Sensitivity of 84.38%**, proving robust diagnostic capabilities with an **AUC-ROC of 0.73**.
+## 🏆 5. Key Research Findings
+- **Significant Sex-Specific Differences:** Binary logistic regression confirmed a major gender disparity; **Male patients exhibit approximately 4.9 times higher odds (OR = 4.90, p < 0.001) of presenting heart disease** compared to female cohorts when controlling for clinical parameters.
+- **Primary Diagnostic Predictors:** While age and gender are strong background variables, the Machine Learning algorithm identified **Chest Pain Type (`cp`)** and **Maximum Heart Rate Achieved (`thalach`)** as possessing the highest feature importance for active clinical classification.
+- **Robust Model Diagnostics:** The final predictive architecture demonstrated a **Balanced Accuracy of 77.37%**, an exceptional **Sensitivity of 84.38%**, and a discriminatory **ROC-AUC profile of 0.73**, proving its efficacy as a supportive screening layout.
 
 ---
 
-## 💻 Tech Stack & Packages Used
-- **Language:** R (v4.6.0)
-- **Environment:** RStudio / R Markdown
-- **Libraries:**
-  - `tidyverse` (Data manipulation & ggplot2 visualization)
-  - `car` (VIF Diagnostic Test)
-  - `pROC` (ROC-AUC Analysis)
-  - `caret` & `randomForest` (Machine Learning workflow)
-
----
-
-## 📂 Repository Structure
-- `cardiovascular_analysis.Rmd` — The original executable R Markdown source code.
-- `cardiovascular_analysis.html` — The knitted professional output report containing all charts and analytical text.
-- `heart_disease_cleveland.csv` — The cleaned dataset used for this study.
+## 🔗 6. Live Interactive Report
+[👉 CLICK HERE TO VIEW THE FULL INTERACTIVE MEDICAL REPORT](https://phyonyeinchan.github.io/cardiovascular-risk-prediction-r/cardiovascular_analysis.html)
