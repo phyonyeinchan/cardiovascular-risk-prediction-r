@@ -5,7 +5,7 @@
 This project focuses on identifying key clinical determinants of cardiovascular disease and building a predictive model using both traditional epidemiology statistics and advanced machine learning. The primary goal is aligned with understanding sex-specific differences, risk stratification, and feature importance in cardiometabolic diseases.
 
 ### 🔗 Live Interactive Report
-[👉 CLICK HERE TO VIEW THE INTERACTIVE HTML REPORT](https://github.io)
+[👉 CLICK HERE TO VIEW THE INTERACTIVE HTML REPORT](https://github.io)https://phyonyeinchan.github.io/cardiovascular-risk-prediction-r/
 
 
 
